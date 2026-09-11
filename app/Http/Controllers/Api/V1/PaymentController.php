@@ -32,7 +32,8 @@ class PaymentController extends Controller
                     abort(404, 'Booking not found for this payment');
                 }
 
-                if ($booking->user_id !== auth()->id()) {
+                $userId = auth()->id();
+                if ($userId === null || (int) $booking->user_id !== (int) $userId) {
                     abort(403, 'Forbidden');
                 }
 
@@ -40,15 +41,13 @@ class PaymentController extends Controller
                     abort(400, 'Payment already completed');
                 }
 
-                if ($payment->payment_status === 'failed' || $payment->payment_status === 'pending') {
-                    $payment->payment_status = 'paid';
-                    $payment->payment_methode = 'manual';
-                    $payment->payment_date_time = now();
-                    $payment->save();
+                $payment->payment_status = 'paid';
+                $payment->payment_methode = 'manual';
+                $payment->payment_date_time = now();
+                $payment->save();
 
-                    $booking->booking_status = 'confirmed';
-                    $booking->save();
-                }
+                $booking->booking_status = 'confirmed';
+                $booking->save();
 
                 return $payment->load('booking');
             });
@@ -59,13 +58,18 @@ class PaymentController extends Controller
         }
 
         if ($method === 'card') {
-            $payment = Payment::with('booking')->findOrFail($paymentId);
+            $payment = DB::transaction(function () use ($paymentId) {
+                return Payment::with('booking')->lockForUpdate()->findOrFail($paymentId);
+            });
 
-            if (! $payment->booking) {
+            $booking = $payment->booking;
+
+            if (! $booking) {
                 abort(404, 'Booking not found for this payment');
             }
 
-            if ($payment->booking->user_id !== auth()->id()) {
+            $userId = auth()->id();
+            if ($userId === null || (int) $booking->user_id !== (int) $userId) {
                 abort(403, 'Forbidden');
             }
 
