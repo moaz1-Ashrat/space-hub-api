@@ -13,14 +13,15 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'first_name',
-        'last_name',
-        'email',
-        'password',
-        'phone',
-        'gender',
-        'role',
-    ];
+    'first_name',
+    'last_name',
+    'email',
+    'password',
+    'phone',
+    'gender',
+    'role',
+    'is_active',
+];
 
     protected $hidden = [
         'password',
@@ -28,9 +29,10 @@ class User extends Authenticatable
 
     protected function casts(): array
     {
-        return [
-            'password' => 'hashed', // bcrypt automatically
-        ];
+    return [
+        'password' => 'hashed',
+        'is_active' => 'boolean',
+    ];
     }
 
     protected function name(): Attribute

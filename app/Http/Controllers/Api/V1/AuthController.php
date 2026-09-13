@@ -71,35 +71,26 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
-    public function login(LoginRequest $request)
-    {
-        $credentials = $request->validated();
-
-        if (!Auth::attempt($credentials)) {
-            return response()->json([
-                'message' => 'Invalid credentials',
-            ], 401);
-        }
-
-        $user = User::where('email', $credentials['email'])
-            ->firstOrFail()
-            ->load(['customer', 'spaceOwner', 'admin']);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Logged in successfully',
-            'data' => new AuthResource($user),
-            'profile' => [
-                'customer' => $user->customer,
-                'space_owner' => $user->spaceOwner,
-                'admin' => $user->admin,
-            ],
-            'token' => $token,
-            'token_type' => 'Bearer',
-        ]);
+public function login(LoginRequest $request)
+{
+    $credentials = $request->validated();
+    if (!Auth::attempt($credentials)) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
     }
+
+    $user = User::where('email', $credentials['email'])
+        ->firstOrFail()
+        ->load(['customer', 'spaceOwner', 'admin']);
+
+    if (! $user->is_active) {
+        return response()->json([
+            'message' => 'Your account has been suspended',
+        ], 403);
+    }
+
+    $token = $user->createToken('auth_token')->plainTextToken;
+    // ... rest
+}
 
     public function logout(Request $request)
     {

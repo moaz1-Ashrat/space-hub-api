@@ -6,6 +6,11 @@ use App\Http\Controllers\Api\V1\SpaceController;
 use App\Http\Controllers\Api\V1\AvailabilityController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\Admin\AdminUserController;
+use App\Http\Controllers\Api\V1\Admin\AdminSpaceController;
+use App\Http\Controllers\Api\V1\Admin\AdminTransactionController;
+use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 
 Route::prefix('v1/auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -62,3 +67,23 @@ Route::prefix('v1')->group(function () {
     });
 });
 
+Route::prefix('v1')->group(function () {
+    Route::get('/spaces/{space}/reviews', [ReviewController::class, 'indexBySpace']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/reviews', [ReviewController::class, 'store']);
+    });
+});
+
+Route::prefix('v1/admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::get('/users', [AdminUserController::class, 'index']);
+    Route::put('/users/{id}/suspend', [AdminUserController::class, 'suspend']);
+    Route::put('/users/{id}/activate', [AdminUserController::class, 'activate']);
+
+    Route::get('/spaces/pending', [AdminSpaceController::class, 'pending']);
+    Route::put('/spaces/{id}/approve', [AdminSpaceController::class, 'approve']);
+    Route::put('/spaces/{id}/reject', [AdminSpaceController::class, 'reject']);
+
+    Route::get('/transactions', [AdminTransactionController::class, 'index']);
+    Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+});

@@ -9,6 +9,8 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Customer;
 use App\Models\SpaceOwner;
+use App\Models\Admin;
+use App\Models\Review;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -116,6 +118,38 @@ class DatabaseSeeder extends Seeder
                 'booking_status' => $status,
                 'attendance_status' => fake()->randomElement(['unknown', 'attended', 'no_show']),
                 'historical_booking' => in_array($status, ['completed', 'cancelled'], true),
+            ]);
+        }
+
+        // 6) Admin user + subtype row
+        $adminUser = User::create([
+            'first_name' => 'Super',
+            'last_name' => 'Admin',
+            'email' => 'admin@spacehub.test',
+            'password' => 'password',
+            'phone' => '01000000000',
+            'gender' => 'male',
+            'role' => 'admin',
+        ]);
+
+        Admin::create([
+            'id' => $adminUser->id,
+            'level_of_authority' => 'super',
+        ]);
+
+        // 7) 5 reviews from customers with completed bookings
+        $completedBookings = Booking::where('booking_status', 'completed')
+            ->inRandomOrder()
+            ->take(5)
+            ->get();
+
+        foreach ($completedBookings as $completedBooking) {
+            Review::create([
+                'customer_id' => $completedBooking->user_id,
+                'space_id' => $completedBooking->space_id,
+                'rating' => fake()->numberBetween(3, 5),
+                'comment' => fake()->sentence(),
+                'review_date' => now()->subDays(fake()->numberBetween(1, 30))->toDateString(),
             ]);
         }
     }
