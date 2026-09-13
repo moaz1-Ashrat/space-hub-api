@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
-    public function __construct(private readonly PaymentGatewayService $gateway)
+    public function __construct()
     {
         $this->middleware('auth:sanctum')->except('webhook');
     }
@@ -58,6 +58,9 @@ class PaymentController extends Controller
         }
 
         if ($method === 'card') {
+            // Resolve the gateway only when 'card' is requested
+            $gateway = app(PaymentGatewayService::class);
+
             $payment = DB::transaction(function () use ($paymentId) {
                 return Payment::with('booking')->lockForUpdate()->findOrFail($paymentId);
             });
@@ -77,7 +80,7 @@ class PaymentController extends Controller
                 abort(400, 'Payment already completed');
             }
 
-            $result = $this->gateway->createSession($payment);
+            $result = $gateway->createSession($payment);
 
             return response()->json([
                 'data' => [
@@ -106,7 +109,9 @@ class PaymentController extends Controller
 
     public function webhook(Request $request)
     {
-        $result = $this->gateway->handleWebhook($request);
+        // Resolve the gateway only when webhook is called
+        $gateway = app(PaymentGatewayService::class);
+        $result = $gateway->handleWebhook($request);
         $code = $result['status'] === 'ok' ? 200 : 400;
 
         return response()->json($result, $code);
