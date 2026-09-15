@@ -1,0 +1,514 @@
+{
+	"info": {
+		"_postman_id": "spacehub-reviews-admin-collection",
+		"name": "Space Hub - Reviews & Admin",
+		"description": "Reviews and Admin operations for Space Hub API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "0. Login - Customer",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"const json = pm.response.json();",
+						"if (json.token) pm.environment.set('customer_token', json.token);"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{customer_email}}\",\n    \"password\": \"{{customer_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "1. Login - Admin",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"const json = pm.response.json();",
+						"if (json.token) pm.environment.set('admin_token', json.token);"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{admin_email}}\",\n    \"password\": \"{{admin_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "2. Create Review (Customer)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 201', () => pm.response.to.have.status(201));",
+						"pm.test('Has review id', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.have.property('id');",
+						"});",
+						"const json = pm.response.json();",
+						"if (json.data && json.data.id) pm.environment.set('review_id', json.data.id);"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"space_id\": {{booking_space_id}},\n    \"rating\": 5,\n    \"comment\": \"Excellent space! Clean, spacious, and well-equipped. Would book again.\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/reviews",
+					"host": ["{{base_url}}"],
+					"path": ["reviews"]
+				}
+			}
+		},
+		{
+			"name": "3. Public Reviews List",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});",
+						"pm.test('Only first_name shown', () => {",
+						"    const json = pm.response.json();",
+						"    if (json.data.length > 0) {",
+						"        const review = json.data[0];",
+						"        pm.expect(review).to.have.property('customer_first_name');",
+						"        pm.expect(review).to.not.have.property('email');",
+						"        pm.expect(review).to.not.have.property('phone');",
+						"    }",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "Accept", "value": "application/json" }],
+				"url": {
+					"raw": "{{base_url}}/spaces/{{booking_space_id}}/reviews",
+					"host": ["{{base_url}}"],
+					"path": ["spaces", "{{booking_space_id}}", "reviews"]
+				}
+			}
+		},
+		{
+			"name": "4. Duplicate Review Test (422)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 422', () => pm.response.to.have.status(422));",
+						"pm.test('Duplicate message', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.message).to.include('already reviewed');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"space_id\": {{booking_space_id}},\n    \"rating\": 3,\n    \"comment\": \"Second review attempt\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/reviews",
+					"host": ["{{base_url}}"],
+					"path": ["reviews"]
+				}
+			}
+		},
+		{
+			"name": "5. Review Without Booking (403)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 403', () => pm.response.to.have.status(403));",
+						"pm.test('Forbidden message', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.message).to.include('completed bookings');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"space_id\": 1,\n    \"rating\": 5,\n    \"comment\": \"Never booked this space\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/reviews",
+					"host": ["{{base_url}}"],
+					"path": ["reviews"]
+				}
+			}
+		},
+		{
+			"name": "6. Non-Admin Access Test (403)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 403', () => pm.response.to.have.status(403));",
+						"pm.test('Forbidden message', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.message).to.eql('Forbidden');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/users",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "users"]
+				}
+			}
+		},
+		{
+			"name": "7. List Users (Admin)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/users",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "users"]
+				}
+			}
+		},
+		{
+			"name": "8. List Users (Filters)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/users?role=customer&is_active=true",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "users"],
+					"query": [
+						{ "key": "role", "value": "customer" },
+						{ "key": "is_active", "value": "true" }
+					]
+				}
+			}
+		},
+		{
+			"name": "9. Suspend User (Admin)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('User suspended', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.is_active).to.eql(false);",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/users/{{owner_id}}/suspend",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "users", "{{owner_id}}", "suspend"]
+				}
+			}
+		},
+		{
+			"name": "10. Activate User (Admin)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('User activated', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.is_active).to.eql(true);",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/users/{{owner_id}}/activate",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "users", "{{owner_id}}", "activate"]
+				}
+			}
+		},
+		{
+			"name": "11. Pending Spaces (Admin)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/spaces/pending",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "spaces", "pending"]
+				}
+			}
+		},
+		{
+			"name": "12. Approve Space (Admin)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Space approved', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.approval_status).to.eql('approved');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/spaces/{{booking_space_id}}/approve",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "spaces", "{{booking_space_id}}", "approve"]
+				}
+			}
+		},
+		{
+			"name": "13. Reject Space (Admin)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Space rejected', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.approval_status).to.eql('rejected');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/spaces/{{booking_space_id}}/reject",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "spaces", "{{booking_space_id}}", "reject"]
+				}
+			}
+		},
+		{
+			"name": "14. Transactions (Admin)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/transactions",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "transactions"]
+				}
+			}
+		},
+		{
+			"name": "15. Transactions (Filters)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/transactions?status=paid",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "transactions"],
+					"query": [
+						{ "key": "status", "value": "paid" }
+					]
+				}
+			}
+		},
+		{
+			"name": "16. Dashboard (Admin)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has dashboard data', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.have.property('total_users');",
+						"    pm.expect(json.data).to.have.property('total_spaces');",
+						"    pm.expect(json.data).to.have.property('total_revenue');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/admin/dashboard",
+					"host": ["{{base_url}}"],
+					"path": ["admin", "dashboard"]
+				}
+			}
+		}
+	]
+}

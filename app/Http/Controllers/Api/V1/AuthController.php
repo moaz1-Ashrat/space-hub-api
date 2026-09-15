@@ -26,7 +26,7 @@ class AuthController extends Controller
                     'first_name' => $data['first_name'],
                     'last_name' => $data['last_name'],
                     'email' => $data['email'],
-                    'password' => $data['password'], // hashed by User cast
+                    'password' => $data['password'],
                     'phone' => $data['phone'],
                     'gender' => $data['gender'],
                     'role' => $data['role'] === 'owner' ? 'space_owner' : 'customer',
@@ -71,26 +71,39 @@ class AuthController extends Controller
             ], 500);
         }
     }
-public function login(LoginRequest $request)
-{
-    $credentials = $request->validated();
-    if (!Auth::attempt($credentials)) {
-        return response()->json(['message' => 'Invalid credentials'], 401);
-    }
 
-    $user = User::where('email', $credentials['email'])
-        ->firstOrFail()
-        ->load(['customer', 'spaceOwner', 'admin']);
+    public function login(LoginRequest $request)
+    {
+        $credentials = $request->validated();
 
-    if (! $user->is_active) {
+        if (! Auth::attempt($credentials)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        $user = User::where('email', $credentials['email'])
+            ->firstOrFail()
+            ->load(['customer', 'spaceOwner', 'admin']);
+
+        if (! $user->is_active) {
+            return response()->json([
+                'message' => 'Your account has been suspended',
+            ], 403);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'message' => 'Your account has been suspended',
-        ], 403);
+            'message' => 'Logged in successfully',
+            'data' => new AuthResource($user),
+            'profile' => [
+                'customer' => $user->customer,
+                'space_owner' => $user->spaceOwner,
+                'admin' => $user->admin,
+            ],
+            'token' => $token,
+            'token_type' => 'Bearer',
+        ], 200);
     }
-
-    $token = $user->createToken('auth_token')->plainTextToken;
-    // ... rest
-}
 
     public function logout(Request $request)
     {

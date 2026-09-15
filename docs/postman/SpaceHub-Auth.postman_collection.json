@@ -1,0 +1,304 @@
+{
+	"info": {
+		"_postman_id": "spacehub-auth-collection",
+		"name": "Space Hub - Auth",
+		"description": "Authentication endpoints for Space Hub API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Register - Customer",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Response has token', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json).to.have.property('token');",
+							"    pm.expect(json).to.have.property('token_type', 'Bearer');",
+							"});",
+							"",
+							"pm.test('User role is customer', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.data.role).to.eql('customer');",
+							"});",
+							"",
+							"const json = pm.response.json();",
+							"if (json.token) {",
+							"    pm.environment.set('customer_token', json.token);",
+							"    pm.environment.set('customer_id', json.data.id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"first_name\": \"Test\",\n    \"last_name\": \"Customer\",\n    \"email\": \"{{customer_email}}\",\n    \"password\": \"{{customer_password}}\",\n    \"phone\": \"01000000001\",\n    \"gender\": \"male\",\n    \"role\": \"customer\",\n    \"favorite\": \"Gaming lounges\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/register",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "register"]
+				},
+				"description": "Register a new customer. Saves token to environment."
+			}
+		},
+		{
+			"name": "2. Register - Owner",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('User role is space_owner', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.data.role).to.eql('space_owner');",
+							"});",
+							"",
+							"const json = pm.response.json();",
+							"if (json.token) {",
+							"    pm.environment.set('owner_token', json.token);",
+							"    pm.environment.set('owner_id', json.data.id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"first_name\": \"Test\",\n    \"last_name\": \"Owner\",\n    \"email\": \"{{owner_email}}\",\n    \"password\": \"{{owner_password}}\",\n    \"phone\": \"01000000002\",\n    \"gender\": \"female\",\n    \"role\": \"owner\",\n    \"tax_registration_number\": \"123456789\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/register",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "register"]
+				},
+				"description": "Register a new space owner. Saves token to environment."
+			}
+		},
+		{
+			"name": "3. Login - Customer",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has token', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json).to.have.property('token');",
+							"});",
+							"",
+							"const json = pm.response.json();",
+							"if (json.token) {",
+							"    pm.environment.set('customer_token', json.token);",
+							"    pm.environment.set('customer_id', json.data.id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{customer_email}}\",\n    \"password\": \"{{customer_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				},
+				"description": "Login as customer. Saves token to environment."
+			}
+		},
+		{
+			"name": "4. Login - Admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('User is admin', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.data.role).to.eql('admin');",
+							"});",
+							"",
+							"const json = pm.response.json();",
+							"if (json.token) {",
+							"    pm.environment.set('admin_token', json.token);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{admin_email}}\",\n    \"password\": \"{{admin_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				},
+				"description": "Login as admin. Requires admin@spacehub.test seeded."
+			}
+		},
+		{
+			"name": "5. Me - Current User",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has data', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json).to.have.property('data');",
+							"    pm.expect(json.data).to.have.property('email');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{customer_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/auth/me",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "me"]
+				},
+				"description": "Get current authenticated user (customer). Requires customer_token."
+			}
+		},
+		{
+			"name": "6. Logout",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Logged out message', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.message).to.include('Logged out');",
+							"});",
+							"",
+							"pm.environment.set('customer_token', '');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{customer_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/auth/logout",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "logout"]
+				},
+				"description": "Logout and revoke current token."
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api/v1"
+		}
+	]
+}

@@ -1,0 +1,338 @@
+{
+	"info": {
+		"_postman_id": "spacehub-bookings-collection",
+		"name": "Space Hub - Bookings & Payments",
+		"description": "Booking lifecycle and payment flow for Space Hub API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "0. Login - Customer",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"const json = pm.response.json();",
+						"if (json.token) {",
+						"    pm.environment.set('customer_token', json.token);",
+						"}"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{customer_email}}\",\n    \"password\": \"{{customer_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "1. Login - Owner",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"const json = pm.response.json();",
+						"if (json.token) {",
+						"    pm.environment.set('owner_token', json.token);",
+						"}"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{owner_email}}\",\n    \"password\": \"{{owner_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "2. Create Booking (Customer)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const now = new Date();",
+							"const start = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);",
+							"const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);",
+							"const pad = (n) => String(n).padStart(2, '0');",
+							"const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;",
+							"pm.variables.set('start_datetime', fmt(start));",
+							"pm.variables.set('end_datetime', fmt(end));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status is 201', () => pm.response.to.have.status(201));",
+							"pm.test('Has booking id', () => {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.data).to.have.property('id');",
+							"});",
+							"const json = pm.response.json();",
+							"if (json.data && json.data.id) {",
+							"    pm.environment.set('booking_id', json.data.id);",
+							"}",
+							"if (json.data && json.data.payment && json.data.payment.id) {",
+							"    pm.environment.set('payment_id', json.data.payment.id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"space_id\": {{booking_space_id}},\n    \"start_datetime\": \"{{start_datetime}}\",\n    \"end_datetime\": \"{{end_datetime}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/bookings",
+					"host": ["{{base_url}}"],
+					"path": ["bookings"]
+				}
+			}
+		},
+		{
+			"name": "3. Get Booking Detail",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has booking data', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.have.property('id');",
+						"    pm.expect(json.data).to.have.property('booking_status');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/bookings/{{booking_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["bookings", "{{booking_id}}"]
+				}
+			}
+		},
+		{
+			"name": "4. Customer Bookings",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/bookings/customer",
+					"host": ["{{base_url}}"],
+					"path": ["bookings", "customer"]
+				}
+			}
+		},
+		{
+			"name": "5. Owner Bookings",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{owner_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/bookings/owner",
+					"host": ["{{base_url}}"],
+					"path": ["bookings", "owner"]
+				}
+			}
+		},
+		{
+			"name": "6. Confirm Booking (Owner)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Booking confirmed', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.booking_status).to.eql('confirmed');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{owner_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/bookings/{{booking_id}}/confirm",
+					"host": ["{{base_url}}"],
+					"path": ["bookings", "{{booking_id}}", "confirm"]
+				}
+			}
+		},
+		{
+			"name": "7. Checkout Payment (Manual)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Payment marked as paid', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.payment_status).to.eql('paid');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"payment_id\": {{payment_id}},\n    \"payment_method\": \"manual\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/payments/checkout",
+					"host": ["{{base_url}}"],
+					"path": ["payments", "checkout"]
+				}
+			}
+		},
+		{
+			"name": "8. Payment History",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{customer_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/payments/history",
+					"host": ["{{base_url}}"],
+					"path": ["payments", "history"]
+				}
+			}
+		},
+		{
+			"name": "9. Webhook Test (Invalid Signature)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 400', () => pm.response.to.have.status(400));",
+						"pm.test('Error status returned', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.status).to.eql('error');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Stripe-Signature", "value": "invalid_signature_for_testing" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"type\": \"checkout.session.completed\",\n    \"data\": {\n        \"object\": {\n            \"metadata\": {\n                \"payment_id\": 1\n            }\n        }\n    }\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/payments/webhook",
+					"host": ["{{base_url}}"],
+					"path": ["payments", "webhook"]
+				}
+			}
+		}
+	]
+}

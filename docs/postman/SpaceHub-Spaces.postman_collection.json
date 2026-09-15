@@ -1,0 +1,338 @@
+{
+	"info": {
+		"_postman_id": "spacehub-spaces-collection",
+		"name": "Space Hub - Spaces & Availability",
+		"description": "Spaces CRUD and Availability management for Space Hub API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "0. Login - Owner (prepare token)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"const json = pm.response.json();",
+						"if (json.token) {",
+						"    pm.environment.set('owner_token', json.token);",
+						"    pm.environment.set('owner_id', json.data.id);",
+						"}"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{owner_email}}\",\n    \"password\": \"{{owner_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "1. List Spaces (Public)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "Accept", "value": "application/json" }],
+				"url": {
+					"raw": "{{base_url}}/spaces",
+					"host": ["{{base_url}}"],
+					"path": ["spaces"]
+				}
+			}
+		},
+		{
+			"name": "2. List Spaces with Filters (Public)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "Accept", "value": "application/json" }],
+				"url": {
+					"raw": "{{base_url}}/spaces?type=office&min_price=50&max_price=500&capacity=5",
+					"host": ["{{base_url}}"],
+					"path": ["spaces"],
+					"query": [
+						{ "key": "type", "value": "office" },
+						{ "key": "min_price", "value": "50" },
+						{ "key": "max_price", "value": "500" },
+						{ "key": "capacity", "value": "5" }
+					]
+				}
+			}
+		},
+		{
+			"name": "3. Get Space Detail (Public)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has space data', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.have.property('id');",
+						"    pm.expect(json.data).to.have.property('name');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "Accept", "value": "application/json" }],
+				"url": {
+					"raw": "{{base_url}}/spaces/{{public_space_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["spaces", "{{public_space_id}}"]
+				}
+			}
+		},
+		{
+			"name": "4. Get Space Availability (Public)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [{ "key": "Accept", "value": "application/json" }],
+				"url": {
+					"raw": "{{base_url}}/spaces/{{public_space_id}}/availability",
+					"host": ["{{base_url}}"],
+					"path": ["spaces", "{{public_space_id}}", "availability"]
+				}
+			}
+		},
+		{
+			"name": "5. Create Space (Owner)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 201', () => pm.response.to.have.status(201));",
+						"pm.test('approval_status is pending', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.approval_status).to.eql('pending');",
+						"});",
+						"const json = pm.response.json();",
+						"if (json.data && json.data.id) {",
+						"    pm.environment.set('created_space_id', json.data.id);",
+						"}"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{owner_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Postman Test Studio\",\n    \"location\": \"123 Postman Street, Cairo\",\n    \"description\": \"A test space created via Postman\",\n    \"space_size\": \"80 sqm\",\n    \"capacity_people\": 20,\n    \"price_per_hour\": 150.00,\n    \"space_type\": \"studio\",\n    \"device_type\": \"Projector, Sound System\",\n    \"feature_ids\": [1, 3, 7]\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/spaces",
+					"host": ["{{base_url}}"],
+					"path": ["spaces"]
+				}
+			}
+		},
+		{
+			"name": "6. Update Space (Owner)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Name updated', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.name).to.eql('Postman Test Studio - Updated');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{owner_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Postman Test Studio - Updated\",\n    \"price_per_hour\": 175.50,\n    \"capacity_people\": 25\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/spaces/{{created_space_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["spaces", "{{created_space_id}}"]
+				}
+			}
+		},
+		{
+			"name": "7. My Spaces (Owner)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Has data array', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data).to.be.an('array');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{owner_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/spaces/owner/me",
+					"host": ["{{base_url}}"],
+					"path": ["spaces", "owner", "me"]
+				}
+			}
+		},
+		{
+			"name": "8. Create Availability (Owner)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 201', () => pm.response.to.have.status(201));",
+						"const json = pm.response.json();",
+						"if (json.data && json.data.id) {",
+						"    pm.environment.set('availability_id', json.data.id);",
+						"}"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{owner_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"day_of_week\": 1,\n    \"start_time\": \"09:00:00\",\n    \"end_time\": \"17:00:00\",\n    \"is_available\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/spaces/{{created_space_id}}/availability",
+					"host": ["{{base_url}}"],
+					"path": ["spaces", "{{created_space_id}}", "availability"]
+				}
+			}
+		},
+		{
+			"name": "9. Update Availability (Owner)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('is_available updated', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.data.is_available).to.eql(false);",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{owner_token}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"is_available\": false,\n    \"start_time\": \"10:00:00\",\n    \"end_time\": \"18:00:00\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/availability/{{availability_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["availability", "{{availability_id}}"]
+				}
+			}
+		},
+		{
+			"name": "10. Delete Space (Owner)",
+			"event": [{
+				"listen": "test",
+				"script": {
+					"exec": [
+						"pm.test('Status is 200', () => pm.response.to.have.status(200));",
+						"pm.test('Delete message', () => {",
+						"    const json = pm.response.json();",
+						"    pm.expect(json.message).to.include('deleted');",
+						"});"
+					],
+					"type": "text/javascript"
+				}
+			}],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{ "key": "Accept", "value": "application/json" },
+					{ "key": "Authorization", "value": "Bearer {{owner_token}}" }
+				],
+				"url": {
+					"raw": "{{base_url}}/spaces/{{created_space_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["spaces", "{{created_space_id}}"]
+				}
+			}
+		}
+	]
+}

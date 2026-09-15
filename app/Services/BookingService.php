@@ -79,7 +79,7 @@ class BookingService
         // 1) Check overlapping bookings on same space (pending/confirmed)
         $overlap = ($this->bookingModel)::where('space_id', $spaceId)
             ->whereIn('booking_status', ['pending', 'confirmed'])
-            ->where('booking_date', $bookingDate)
+            ->whereDate('booking_date', $bookingDate)
             ->where(function ($q) use ($startTime, $endTime) {
                 $q->where('start_time', '<', $endTime)
                   ->where('end_time', '>', $startTime);

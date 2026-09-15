@@ -10,15 +10,31 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class FeatureFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
-            //
+            'name' => fake()->unique()->randomElement([
+                'WiFi',
+                'Projector',
+                'Air Conditioning',
+                'Parking',
+                'Coffee Machine',
+                'Gaming Consoles',
+                'Sound System',
+                'Whiteboard',
+                'LED Screen',
+                'VR Set',
+            ]) . ' ' . fake()->unique()->numberBetween(1, 9999),
+            'category' => fake()->randomElement([
+                'connectivity',
+                'equipment',
+                'comfort',
+                'facility',
+                'hospitality',
+                'entertainment',
+                'office',
+            ]),
+            'description' => fake()->sentence(),
         ];
     }
 }
