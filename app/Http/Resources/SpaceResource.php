@@ -4,6 +4,8 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\SpaceImageResource;
+
 
 class SpaceResource extends JsonResource
 {
@@ -22,7 +24,13 @@ class SpaceResource extends JsonResource
             'approval_status' => $this->approval_status,
             'owner_name' => optional($this->owner)->first_name . ' ' . optional($this->owner)->last_name,
             'average_rating' => $this->when(isset($this->avg_rating), round((float)$this->avg_rating, 2)),
-            'features' => FeatureResource::collection($this->whenLoaded('features')),
+            
+                          'features' => FeatureResource::collection($this->whenLoaded('features')),
+'images' => SpaceImageResource::collection($this->whenLoaded('images')),
+'primary_image' => $this->whenLoaded('primaryImage', function () {
+    return $this->primaryImage ? new SpaceImageResource($this->primaryImage) : null;
+}),
+
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

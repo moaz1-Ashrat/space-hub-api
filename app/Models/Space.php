@@ -23,6 +23,12 @@ class Space extends Model
         'approval_status',
     ];
 
+    protected $casts = [
+        'user_id' => 'integer',
+        'capacity_people' => 'integer',
+        'price_per_hour' => 'decimal:2',
+    ];
+
     public function owner()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -42,8 +48,19 @@ class Space extends Model
     {
         return $this->hasMany(Review::class, 'space_id');
     }
+
     public function availabilities()
     {
-    return $this->hasMany(Availability::class);
+        return $this->hasMany(Availability::class);
+    }
+
+    public function images()
+    {
+        return $this->hasMany(SpaceImage::class)->orderBy('order')->orderBy('id');
+    }
+
+    public function primaryImage()
+    {
+        return $this->hasOne(SpaceImage::class)->where('is_primary', true);
     }
 }

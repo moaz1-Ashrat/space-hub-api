@@ -14,7 +14,7 @@ class SpaceController extends Controller
     public function index(Request $request)
     {
         $query = Space::query()
-            ->with(['owner', 'features'])
+            ->with(['owner', 'features', 'images', 'primaryImage'])
             ->withAvg('reviews as avg_rating', 'rating')
             ->where('approval_status', 'approved');
 
@@ -45,7 +45,8 @@ class SpaceController extends Controller
 
     public function show(Request $request, Space $space)
     {
-        $user = $request->user();
+        // ⚠️ FIX: Use sanctum guard explicitly (route is public but needs optional user context)
+        $user = auth('sanctum')->user();
 
         $canViewUnapproved = $user
             && ($user->role === 'admin' || $user->id === $space->user_id);
@@ -54,7 +55,7 @@ class SpaceController extends Controller
             abort(404);
         }
 
-        $space->load(['owner', 'features'])
+        $space->load(['owner', 'features', 'images', 'primaryImage'])
             ->loadAvg('reviews as avg_rating', 'rating');
 
         return new SpaceResource($space);
@@ -74,7 +75,8 @@ class SpaceController extends Controller
         $space = Space::create($data);
         $space->features()->sync($featureIds);
 
-        $space->load(['owner', 'features'])->loadAvg('reviews as avg_rating', 'rating');
+        $space->load(['owner', 'features', 'images', 'primaryImage'])
+            ->loadAvg('reviews as avg_rating', 'rating');
 
         return response()->json([
             'message' => 'Space created successfully',
@@ -99,7 +101,8 @@ class SpaceController extends Controller
             $space->features()->sync($featureIds);
         }
 
-        $space->load(['owner', 'features'])->loadAvg('reviews as avg_rating', 'rating');
+        $space->load(['owner', 'features', 'images', 'primaryImage'])
+            ->loadAvg('reviews as avg_rating', 'rating');
 
         return response()->json([
             'message' => 'Space updated successfully',
@@ -123,7 +126,7 @@ class SpaceController extends Controller
         abort_unless($request->user()->role === 'space_owner', 403);
 
         $spaces = Space::query()
-            ->with(['owner', 'features'])
+            ->with(['owner', 'features', 'images', 'primaryImage'])
             ->withAvg('reviews as avg_rating', 'rating')
             ->where('user_id', $request->user()->id)
             ->latest()

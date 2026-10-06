@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\SpaceController;
+use App\Http\Controllers\Api\V1\SpaceImageController;
 use App\Http\Controllers\Api\V1\AvailabilityController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\PaymentController;
@@ -12,6 +13,9 @@ use App\Http\Controllers\Api\V1\Admin\AdminSpaceController;
 use App\Http\Controllers\Api\V1\Admin\AdminTransactionController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 
+// ============================================
+// AUTH
+// ============================================
 Route::prefix('v1/auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
@@ -22,12 +26,14 @@ Route::prefix('v1/auth')->group(function () {
     });
 });
 
+// ============================================
+// SPACES + FEATURES + AVAILABILITY + IMAGES
+// ============================================
 Route::prefix('v1')->group(function () {
-    // Public spaces
+    // Public
     Route::get('/spaces', [SpaceController::class, 'index']);
     Route::get('/spaces/{space}', [SpaceController::class, 'show']);
-
-    // Public availability
+    Route::get('/features', [\App\Http\Controllers\Api\V1\FeatureController::class, 'index']);
     Route::get('/spaces/{space}/availability', [AvailabilityController::class, 'indexBySpace']);
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -37,12 +43,20 @@ Route::prefix('v1')->group(function () {
         Route::delete('/spaces/{space}', [SpaceController::class, 'destroy']);
         Route::get('/spaces/owner/me', [SpaceController::class, 'mySpaces']);
 
+        // ⚠️ Space Images — في المكان الصحيح
+        Route::post('/spaces/{space}/images', [SpaceImageController::class, 'store']);
+        Route::delete('/spaces/images/{image}', [SpaceImageController::class, 'destroy']);
+        Route::put('/spaces/images/{image}/primary', [SpaceImageController::class, 'setPrimary']);
+
         // Availability (owner)
         Route::post('/spaces/{space}/availability', [AvailabilityController::class, 'store']);
         Route::put('/availability/{availability}', [AvailabilityController::class, 'update']);
     });
 });
 
+// ============================================
+// BOOKINGS
+// ============================================
 Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bookings', [BookingController::class, 'store']);
@@ -52,12 +66,12 @@ Route::prefix('v1')->group(function () {
         Route::put('/bookings/{id}/confirm', [BookingController::class, 'confirm']);
         Route::get('/bookings/{id}', [BookingController::class, 'show']);
     });
-
-
 });
 
+// ============================================
+// PAYMENTS
+// ============================================
 Route::prefix('v1')->group(function () {
-
     // Webhook: OUTSIDE auth:sanctum — authenticated by Stripe signature
     Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
 
@@ -67,6 +81,9 @@ Route::prefix('v1')->group(function () {
     });
 });
 
+// ============================================
+// REVIEWS
+// ============================================
 Route::prefix('v1')->group(function () {
     Route::get('/spaces/{space}/reviews', [ReviewController::class, 'indexBySpace']);
 
@@ -75,6 +92,9 @@ Route::prefix('v1')->group(function () {
     });
 });
 
+// ============================================
+// ADMIN
+// ============================================
 Route::prefix('v1/admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/users', [AdminUserController::class, 'index']);
     Route::put('/users/{id}/suspend', [AdminUserController::class, 'suspend']);

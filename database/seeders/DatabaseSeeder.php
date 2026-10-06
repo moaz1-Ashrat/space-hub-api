@@ -38,16 +38,40 @@ class DatabaseSeeder extends Seeder
         // ============================================
         // 2) 10 space owners + subtype rows
         // ============================================
-        $ownerUsers = User::factory()->count(10)->create([
-            'role' => 'space_owner',
-        ]);
+        // ============================================
 
-        foreach ($ownerUsers as $ownerUser) {
-            SpaceOwner::create([
-                'id' => $ownerUser->id,
-                'tax_registration_number' => (string) fake()->unique()->numberBetween(100000000, 999999999),
-            ]);
-        }
+
+// 2.1) Main test owner (for Postman & Frontend)
+$mainOwner = User::create([
+    'first_name' => 'Main',
+    'last_name' => 'Owner',
+    'email' => 'owner@spacehub.test',
+    'password' => 'password123',
+    'phone' => '01000000002',
+    'gender' => 'male',
+    'role' => 'space_owner',
+    'is_active' => true,
+]);
+
+SpaceOwner::create([
+    'id' => $mainOwner->id,
+    'tax_registration_number' => '111222333',
+]);
+
+// 2.2) 9 additional random owners
+$ownerUsers = User::factory()->count(9)->create([
+    'role' => 'space_owner',
+]);
+
+foreach ($ownerUsers as $ownerUser) {
+    SpaceOwner::create([
+        'id' => $ownerUser->id,
+        'tax_registration_number' => (string) fake()->unique()->numberBetween(100000000, 999999999),
+    ]);
+}
+
+// Merge for space assignment later
+$ownerUsers = $ownerUsers->push($mainOwner);
 
         // ============================================
         // 3) 30 spaces across owners, each with 2-5 features
