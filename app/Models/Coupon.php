@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Coupon extends Model
 {
+    use HasFactory;
+
     protected $table = 'coupons';
 
     protected $fillable = [
         'user_id',
+        'code',
         'discount_value',
         'commission_rate',
         'is_used',
@@ -35,5 +39,18 @@ class Coupon extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class, 'booking_id');
+    }
+
+    public function isValid(): bool
+    {
+        if ($this->is_used) {
+            return false;
+        }
+
+        if ($this->expiry_date && $this->expiry_date->isPast()) {
+            return false;
+        }
+
+        return true;
     }
 }

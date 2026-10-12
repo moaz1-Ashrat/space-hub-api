@@ -7,7 +7,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-
+use App\Notifications\ResetPasswordNotification;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -34,6 +34,13 @@ class User extends Authenticatable
         'is_active' => 'boolean',
     ];
     }
+/**
+ * Send the password reset notification.
+ */
+public function sendPasswordResetNotification($token): void
+{
+    $this->notify(new ResetPasswordNotification($token));
+}
 
     protected function name(): Attribute
     {

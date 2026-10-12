@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\Review;
 use App\Models\Space;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
@@ -53,6 +54,19 @@ class ReviewController extends Controller
     {
         $reviews = $space->reviews()
             ->with('customer.user')
+            ->orderByDesc('review_date')
+            ->paginate(15);
+
+        return ReviewResource::collection($reviews);
+    }
+
+    /**
+     * ✅ NEW: Get authenticated user's own reviews.
+     */
+    public function myReviews(Request $request)
+    {
+        $reviews = Review::where('customer_id', $request->user()->id)
+            ->with(['space.primaryImage'])
             ->orderByDesc('review_date')
             ->paginate(15);
 

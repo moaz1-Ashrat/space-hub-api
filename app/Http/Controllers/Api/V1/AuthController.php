@@ -10,9 +10,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use App\Http\Resources\AuthResource;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
+use App\Http\Requests\Auth\ChangePasswordRequest;
 
 class AuthController extends Controller
 {
@@ -130,6 +136,93 @@ class AuthController extends Controller
                 'space_owner' => $user->spaceOwner,
                 'admin' => $user->admin,
             ],
+        ]);
+    }
+
+    /**
+     * 3A: Send password reset link.
+     */
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+        // Always return generic message for security
+        Password::sendResetLink($request->only('email'));
+
+        return response()->json([
+            'message' => 'If this email exists, a password reset link has been sent.',
+        ], 200);
+    }
+
+    /**
+     * 3B: Reset password using token.
+     */
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+        $status = Password::reset(
+            $request->validated(),
+            function (User $user, string $password) {
+                $user->password = $password;
+                $user->save();
+
+                // Revoke all tokens for security
+                $user->tokens()->delete();
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Password reset successfully.',
+            ], 200);
+        }
+
+        return response()->json([
+            'message' => __($status),
+        ], 422);
+    }
+
+    /**
+     * 3C: Update authenticated user's profile.
+     */
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        $user = $request->user();
+        $user->update($request->validated());
+        $user->load(['customer', 'spaceOwner', 'admin']);
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'data' => new AuthResource($user),
+            'profile' => [
+                'customer' => $user->customer,
+                'space_owner' => $user->spaceOwner,
+                'admin' => $user->admin,
+            ],
+        ]);
+    }
+
+    /**
+     * 3D: Change password (keep current session).
+     */
+    public function changePassword(ChangePasswordRequest $request)
+    {
+        $user = $request->user();
+
+        if (! Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'Current password is incorrect.',
+            ], 422);
+        }
+
+        $user->password = $request->new_password;
+        $user->save();
+
+        // Revoke all other tokens except current one
+        $currentToken = $user->currentAccessToken();
+        if ($currentToken) {
+            $user->tokens()->where('id', '!=', $currentToken->id)->delete();
+        }
+
+        return response()->json([
+            'message' => 'Password changed successfully.',
         ]);
     }
 }

@@ -14,7 +14,7 @@ class AvailabilityController extends Controller
 {
     public function indexBySpace(Space $space)
     {
-        $slots = $space->availabilities()->latest()->get();
+        $slots = $space->availabilities()->orderBy('day_of_week')->orderBy('start_time')->get();
 
         return AvailabilityResource::collection($slots);
     }
@@ -23,7 +23,26 @@ class AvailabilityController extends Controller
     {
         abort_unless($request->user()->id === $space->user_id, 403);
 
-        $slot = $space->availabilities()->create($request->validated());
+        $data = $request->validated();
+
+        // ✅ Check for duplicate slot (same day + times)
+        $exists = $space->availabilities()
+            ->where('day_of_week', $data['day_of_week'])
+            ->where('start_time', $data['start_time'])
+            ->where('end_time', $data['end_time'])
+            ->whereNull('special_date')
+            ->when(isset($data['special_date']) && $data['special_date'], function ($q) use ($data) {
+                $q->where('special_date', $data['special_date']);
+            })
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'message' => 'A slot with the same day and time already exists.',
+            ], 422);
+        }
+
+        $slot = $space->availabilities()->create($data);
 
         return response()->json([
             'message' => 'Availability slot created',
@@ -39,7 +58,21 @@ class AvailabilityController extends Controller
 
         return response()->json([
             'message' => 'Availability slot updated',
-            'data' => new AvailabilityResource($availability),
+            'data' => new AvailabilityResource($availability->fresh()),
+        ]);
+    }
+
+    /**
+     * ✅ NEW: Delete an availability slot.
+     */
+    public function destroy(Request $request, Availability $availability)
+    {
+        abort_unless($request->user()->id === $availability->space->user_id, 403);
+
+        $availability->delete();
+
+        return response()->json([
+            'message' => 'Availability slot deleted',
         ]);
     }
 }

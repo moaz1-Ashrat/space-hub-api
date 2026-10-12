@@ -140,15 +140,36 @@ $ownerUsers = $ownerUsers->push($mainOwner);
         }
 
         // ============================================
-        // 5) 15 coupons distributed to customers
+        // 5) Coupons — mix of generic + customer-specific
         // ============================================
         $couponsPool = [];
 
-        foreach (range(1, 15) as $i) {
+        // 5.1) 5 generic coupons (available to all)
+        $genericCodes = ['WELCOME10', 'SAVE20', 'FIRST50', 'SPACE100', 'HUB30'];
+        $genericDiscounts = [10, 20, 50, 100, 30];
+
+        foreach ($genericCodes as $index => $code) {
+            $coupon = Coupon::create([
+                'user_id' => $mainOwner->id, // will be reassigned per-user later
+                'code' => $code,
+                'discount_value' => $genericDiscounts[$index],
+                'commission_rate' => 0.10,
+                'is_used' => false,
+                'expiry_date' => now()->addDays(fake()->numberBetween(30, 90)),
+                'used_at' => null,
+                'booking_id' => null,
+            ]);
+
+            $couponsPool[] = $coupon;
+        }
+
+        // 5.2) 10 customer-specific coupons
+        foreach (range(1, 10) as $i) {
             $customer = $customerUsers->random();
 
             $coupon = Coupon::create([
                 'user_id' => $customer->id,
+                'code' => strtoupper(fake()->bothify('????####')), // e.g., ABCD1234
                 'discount_value' => fake()->randomElement([10, 20, 30, 50, 100]),
                 'commission_rate' => fake()->randomElement([0.05, 0.07]),
                 'is_used' => false,
