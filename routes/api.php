@@ -52,7 +52,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/spaces/{space}', [SpaceController::class, 'show']);
     Route::get('/features', [\App\Http\Controllers\Api\V1\FeatureController::class, 'index']);
     Route::get('/spaces/{space}/availability', [AvailabilityController::class, 'indexBySpace']);
-    Route::get('/coupons/my', [CouponController::class, 'my']);
+    Route::middleware('auth:sanctum')->get('/coupons/my', [CouponController::class, 'my']);
+
 
     Route::middleware('auth:sanctum')->group(function () {
         // Spaces (owner)
@@ -143,6 +144,8 @@ Route::prefix('v1/admin')->middleware(['auth:sanctum', 'admin'])->group(function
         Route::get('/top-spaces', [AdminAnalyticsController::class, 'topSpaces']);
         Route::get('/top-owners', [AdminAnalyticsController::class, 'topOwners']);
         Route::get('/top-customers', [AdminAnalyticsController::class, 'topCustomers']);
+        Route::get('/demographics', [AdminAnalyticsController::class, 'demographics']);
+        Route::get('/coupons', [AdminAnalyticsController::class, 'coupons']);
     });
     Route::prefix('coupons')->group(function () {
     Route::get('/', [AdminCouponController::class, 'index']);
